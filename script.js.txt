@@ -1,136 +1,114 @@
 javascript:(function(){
 function showToast(t,e=3e3){
   if(!document.getElementById("mobile-toast-container")){
-    const e=document.createElement("div");
-    e.id="mobile-toast-container";
-    e.style.position="fixed";
-    e.style.top="15px";
-    e.style.left="50%";
-    e.style.transform="translateX(-50%)";
-    e.style.zIndex="99999";
-    e.style.maxWidth="320px";
-    e.style.textAlign="center";
-    document.body.appendChild(e);
+    const c=document.createElement("div");
+    c.id="mobile-toast-container";
+    c.style="position:fixed;top:15px;left:50%;transform:translateX(-50%);z-index:99999;max-width:320px;text-align:center";
+    document.body.appendChild(c);
   }
   const o=document.createElement("div");
   o.textContent=t;
-  o.style.background="#333";
-  o.style.color="#fff";
-  o.style.padding="8px 12px";
-  o.style.marginTop="8px";
-  o.style.borderRadius="8px";
-  o.style.cursor="pointer";
-  o.style.fontSize="13px";
-  o.style.display="inline-block";
-  o.style.boxShadow="0 2px 6px rgba(0,0,0,.3)";
+  o.style="background:#333;color:#fff;padding:8px 12px;margin-top:8px;border-radius:8px;cursor:pointer;font-size:13px;display:inline-block;box-shadow:0 2px 6px rgba(0,0,0,.3)";
   o.onclick=()=>o.remove();
   document.getElementById("mobile-toast-container").appendChild(o);
   e>0&&setTimeout(()=>o.remove(),e);
 }
 
-function sendSocketPayload(t,e){
-  if(void 0===realSocket||1!==realSocket.readyState)
-    return console.warn("⚠ لا يوجد اتصال WebSocket جاهز"),!1;
+function sendSocketPayload(cmd,data){
+  if(typeof _realSocket_==="undefined"||_realSocket_.readyState!==1){
+    console.warn("⚠ لا يوجد اتصال WebSocket جاهز");
+    return false;
+  }
   try{
-    return realSocket.send("42"+JSON.stringify(["msg",{cmd:t,data:e}])),!0;
-  }catch(t){
-    return console.error("❌ فشل الإرسال:",t),!1;
+    _realSocket_.send("42"+JSON.stringify(["msg",{cmd,data}]));
+    return true;
+  }catch(e){
+    console.error("❌ فشل الإرسال:",e);
+    return false;
   }
 }
 
-function bindProfileElement(t){
-  const e=t.querySelector('img[src*="s4.png"]'),
-        o=[...t.classList].find(t=>t.startsWith("uid"));
-  if(e&&o){
-    t.style.cursor="pointer";
-    t.onclick=()=>{
-      const e=o.replace("uid","");
-      const c=t.querySelector(".u-topic"),
-            n=c?c.textContent.trim():"";
-      window.cpShowProfile?.show ? window.cpShowProfile.show(e,n) : alert("نافذة شو بروفايل غير مفعّلة بعد");
+function bindProfileElement(el){
+  const status=el.querySelector('img[src*="s4.png"]'),
+        uid=[...el.classList].find(c=>c.startsWith("uid"));
+  if(status&&uid){
+    el.style.cursor="pointer";
+    el.onclick=()=>{
+      const id=uid.replace("uid","");
+      const topic=el.querySelector(".u-topic")?.textContent.trim()||"";
+      window._cpShowProfile_?.show ? window._cpShowProfile_.show(id,topic) : alert("نافذة شو بروفايل غير مفعّلة بعد");
     };
   }
 }
 
 if(!document.getElementById("cp-showprofile-modal")){
-  const t=document.createElement("style");
-  t.textContent="#cp-showprofile-modal{position:fixed;z-index:100000;top:50%;left:50%;transform:translate(-50%,-50%);background:#0f0f12;color:#fff;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6);width:320px;max-width:92%;font-family:Arial,Helvetica,sans-serif}#cp-showprofile-header{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-weight:700}#cp-showprofile-body{padding:12px 14px;display:flex;gap:8px;justify-content:space-between}.cp-sp-btn{flex:1;background:#17171b;border:1px solid rgba(255,255,255,.04);color:#fff;padding:10px;border-radius:8px;text-align:center;cursor:pointer;font-size:14px;user-select:none}.cp-sp-btn:hover{background:#262629}.cp-sp-btn.active{background:#1a73e8;color:#fff;font-weight:bold}#cp-sp-notify-box{display:none;padding:12px 14px;border-top:1px solid rgba(255,255,255,.04)}#cp-sp-notify-box textarea{width:100%;height:74px;resize:vertical;border-radius:6px;padding:8px;background:#0b0b0d;color:#fff;border:1px solid rgba(255,255,255,.06)}#cp-sp-actions{display:flex;gap:8px;margin-top:8px}.cp-sp-small{flex:1;padding:8px;border-radius:6px;background:#1a73e8;border:none;color:#fff;cursor:pointer}.cp-sp-small.secondary{background:#777}.cp-sp-close{position:absolute;right:10px;top:8px;background:transparent;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:20px}#cp-showprofile-meta{padding:8px 14px;font-size:13px;color:rgba(255,255,255,.8);border-bottom:1px solid rgba(255,255,255,.03)}";
-  document.head.appendChild(t);
+  const style=document.createElement("style");
+  style.textContent="#cp-showprofile-modal{position:fixed;z-index:100000;top:50%;left:50%;transform:translate(-50%,-50%);background:#0f0f12;color:#fff;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6);width:320px;max-width:92%;font-family:Arial}#cp-showprofile-header{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-weight:700}#cp-showprofile-body{padding:12px 14px;display:flex;gap:8px;justify-content:space-between}.cp-sp-btn{flex:1;background:#17171b;border:1px solid rgba(255,255,255,.04);color:#fff;padding:10px;border-radius:8px;text-align:center;cursor:pointer;font-size:14px}.cp-sp-btn:hover{background:#262629}.cp-sp-btn.active{background:#1a73e8;color:#fff;font-weight:bold}#cp-sp-notify-box{display:none;padding:12px 14px;border-top:1px solid rgba(255,255,255,.04)}#cp-sp-notify-box textarea{width:100%;height:74px;resize:vertical;border-radius:6px;padding:8px;background:#0b0b0d;color:#fff;border:1px solid rgba(255,255,255,.06)}#cp-sp-actions{display:flex;gap:8px;margin-top:8px}.cp-sp-small{flex:1;padding:8px;border-radius:6px;background:#1a73e8;border:none;color:#fff;cursor:pointer}.cp-sp-small.secondary{background:#777}.cp-sp-close{position:absolute;right:10px;top:8px;background:transparent;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:20px}#cp-showprofile-meta{padding:8px 14px;font-size:13px;color:rgba(255,255,255,.8);border-bottom:1px solid rgba(255,255,255,.03)}";
+  document.head.appendChild(style);
 
-  const e=document.createElement("div");
-  e.id="cp-showprofile-modal";
-  e.style.display="none";
-  e.innerHTML='<button class="cp-sp-close" aria-label="close">&times;</button><div id="cp-showprofile-header">شو بروفايل</div><div id="cp-showprofile-meta"></div><div id="cp-showprofile-body"><div class="cp-sp-btn" id="cp-sp-private">محادثة</div><div class="cp-sp-btn" id="cp-sp-notify">تنبيه</div><div class="cp-sp-btn" id="cp-sp-like">إعجاب</div></div><div id="cp-sp-notify-box"><textarea id="cp-sp-notify-txt" placeholder="اكتب التنبيه هنا..."></textarea><div id="cp-sp-actions"><button class="cp-sp-small" id="cp-sp-send-not">إرسال التنبيه</button><button class="cp-sp-small secondary" id="cp-sp-cancel-not">إلغاء</button></div></div>';
-  document.body.appendChild(e);
+  const modal=document.createElement("div");
+  modal.id="cp-showprofile-modal";
+  modal.style.display="none";
+  modal.innerHTML='<button class="cp-sp-close" aria-label="close">&times;</button><div id="cp-showprofile-header">شو بروفايل</div><div id="cp-showprofile-meta"></div><div id="cp-showprofile-body"><div class="cp-sp-btn" id="cp-sp-private">محادثة</div><div class="cp-sp-btn" id="cp-sp-notify">تنبيه</div><div class="cp-sp-btn" id="cp-sp-like">إعجاب</div></div><div id="cp-sp-notify-box"><textarea id="cp-sp-notify-txt" placeholder="اكتب التنبيه هنا..."></textarea><div id="cp-sp-actions"><button class="cp-sp-small" id="cp-sp-send-not">إرسال التنبيه</button><button class="cp-sp-small secondary" id="cp-sp-cancel-not">إلغاء</button></div></div>';
+  document.body.appendChild(modal);
 
-  const o=e.querySelector(".cp-sp-close"),
-        c=e.querySelector("#cp-sp-like"),
-        n=e.querySelector("#cp-sp-notify"),
-        i=e.querySelector("#cp-sp-private"),
-        s=e.querySelector("#cp-sp-notify-box"),
-        r=e.querySelector("#cp-sp-notify-txt"),
-        l=e.querySelector("#cp-sp-send-not"),
-        a=e.querySelector("#cp-sp-cancel-not"),
-        d=e.querySelector("#cp-showprofile-meta");
+  const close=modal.querySelector(".cp-sp-close"),
+        like=modal.querySelector("#cp-sp-like"),
+        notify=modal.querySelector("#cp-sp-notify"),
+        chat=modal.querySelector("#cp-sp-private"),
+        box=modal.querySelector("#cp-sp-notify-box"),
+        input=modal.querySelector("#cp-sp-notify-txt"),
+        send=modal.querySelector("#cp-sp-send-not"),
+        cancel=modal.querySelector("#cp-sp-cancel-not"),
+        meta=modal.querySelector("#cp-showprofile-meta");
 
-  o.onclick=()=>p();
-  a.onclick=()=>{r.value="",u();};
+  close.onclick=()=>hide();
+  cancel.onclick=()=>{input.value="";hideNotify();};
 
-  let pTarget={userId:null,username:null};
+  let target={userId:null,username:null};
 
-  function m(t,o){
-    pTarget.userId=t;
-    pTarget.username=o||"";
-    e.querySelector("#cp-showprofile-header").textContent="شو بروفايل";
-    d.textContent=pTarget.username?"المستخدم: "+pTarget.username:"المعرف: "+pTarget.userId;
-    r.value="";
-    u();
-    e.style.display="block";
+  function show(id,name){
+    target.userId=id;
+    target.username=name||"";
+    modal.querySelector("#cp-showprofile-header").textContent="شو بروفايل";
+    meta.textContent=name ? "المستخدم: "+name : "المعرف: "+id;
+    input.value="";
+    hideNotify();
+    modal.style.display="block";
   }
 
-  function p(){e.style.display="none",pTarget={userId:null,username:null};}
-  function y(){s.style.display="block";}
-  function u(){s.style.display="none";}
+  function hide(){modal.style.display="none";target={userId:null,username:null};}
+  function showNotify(){box.style.display="block";}
+  function hideNotify(){box.style.display="none";}
 
-  c.onclick=()=>{
-    const t=pTarget.userId;
-    if(!t)return console.warn("لا يوجد معرف");
-    sendSocketPayload("ccvimn",{cmd:"like",id:t})?
-      (showToast("✅ أُرسل إعجاب إلى "+(pTarget.username||t),3e3),c.classList.add("active"),setTimeout(()=>c.classList.remove("active"),1500)):
+  like.onclick=()=>{
+    const id=target.userId;
+    if(!id)return console.warn("لا يوجد معرف");
+    sendSocketPayload("ccvimn",{cmd:"like",id})?
+      (showToast("✅ أُرسل إعجاب إلى "+(target.username||id),3e3),like.classList.add("active"),setTimeout(()=>like.classList.remove("active"),1500)):
       showToast("❌ فشل إرسال الإعجاب",4e3);
   };
 
-  n.onclick=()=>{y();};
-  l.onclick=()=>{
-    const t=r.value.trim(),
-          e=pTarget.userId;
-    if(!t)return alert("اكتب نص التنبيه أولاً");
-    if(!e)return console.warn("لا يوجد معرف");
-    sendSocketPayload("ccvimn",{cmd:"not",id:e,msg:t})?
-      (showToast("✅ أُرسل التنبيه",3e3),r.value="",u(),p()):
+  notify.onclick=()=>{showNotify();};
+
+  send.onclick=()=>{
+    const msg=input.value.trim(),id=target.userId;
+    if(!msg)return alert("اكتب نص التنبيه أولاً");
+    if(!id)return console.warn("لا يوجد معرف");
+    sendSocketPayload("ccvimn",{cmd:"not",id,msg})?
+      (showToast("✅ أُرسل التنبيه",3e3),input.value="",hideNotify(),hide()):
       alert("❌ فشل الإرسال: لا يوجد اتصال");
   };
 
-  i.onclick=()=>{
-    const t=pTarget.userId;
-    t?("function"==typeof openw?(openw(t,!0),p()):showToast("❌ لا يمكن فتح المحادثة: الدالة openw غير موجودة",4e3)):
+  chat.onclick=()=>{
+    const id=target.userId;
+    id ? (typeof openw==="function" ? (openw(id,!0),hide()) : showToast("❌ لا يمكن فتح المحادثة: الدالة openw غير موجودة",4e3)) :
     console.warn("لا يوجد معرف");
   };
 
-  window.cpShowProfile={show:m,hide:p};
+  window._cpShowProfile_={show,hide};
 }
 
-// ❌ استهداف كل div بدون فلترة
 document.querySelectorAll("div").forEach(bindProfileElement);
-
-new MutationObserver(t=>{
-  t.forEach(t=>{
-    t.addedNodes.forEach(t=>{
-      if(t.nodeType===1){
-        bindProfileElement(t);
-        t.querySelectorAll && t.querySelectorAll("div").forEach(bindProfileElement);
-      }
-    });
-  });
-}).observe(document.body,{childList:!0,subtree:!0});
+new MutationObserver(m=>{m.forEach(n=>{n.addedNodes.forEach(el=>{if(el.nodeType===1){bindProfileElement(el);el.querySelectorAll&&el.querySelectorAll("div").forEach(bindProfileElement);}});});}).observe(document.body,{childList:!0,subtree:!0});
 })();
