@@ -1,4 +1,4 @@
-javascript:(function(){
+(function(){
   function showUsers() {
     document.querySelectorAll('.uzr').forEach(el => el.style.display = 'block');
   }
