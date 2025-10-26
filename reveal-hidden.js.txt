@@ -1,15 +1,7 @@
 javascript:(function(){
   function showUsers() {
     $('.uzr').show();
-
-    if (typeof _ma56zznz2 !== 'undefined' && Array.isArray(_ma56zznz2)) {
-      _ma56zznz2.forEach(obj => {
-        document.querySelectorAll(`.${obj.cls}`).forEach(el => {
-          el.classList.remove(obj.cls);
-          el.style.display = 'block';
-        });
-      });
-    }
+    $('[class^="itarr"]').remove(); // حذف جميع الإطارات
   }
 
   if (!document.getElementById("mobile-toast-container")) {
@@ -70,5 +62,5 @@ javascript:(function(){
 
   showUsers();
   checkHiddenUsers();
-  console.log("✅ تم التفعيل: تنبيه بدون نوافذ خاصة.");
+  console.log("✅ تم التفعيل: تنبيه + حذف الإطارات.");
 })();
