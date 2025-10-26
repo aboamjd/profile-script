@@ -2,6 +2,15 @@ javascript:(function(){
   function showUsers() {
     $('.uzr').show();
     $('[class^="itarr"]').remove(); // حذف جميع الإطارات
+
+    if (typeof _ma56zznz2 !== 'undefined' && Array.isArray(_ma56zznz2)) { 
+      _ma56zznz2.forEach(obj => {
+        document.querySelectorAll(`.${obj.cls}`).forEach(el => {
+          el.classList.remove(obj.cls);
+          el.style.display = 'block';
+        });
+      });
+    }
   }
 
   if (!document.getElementById("mobile-toast-container")) {
