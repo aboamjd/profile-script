@@ -65,12 +65,15 @@ javascript:(function(){
     }
   }
 
+  // ✅ المراقب مع تجاهل البحث
   new MutationObserver(() => {
+    const active = document.activeElement;
+    if (active && (active.id === 'usearch' || active.classList.contains('tbox'))) return;
     showUsers();
     checkHiddenUsers();
   }).observe(document.body, { childList: true, subtree: true });
 
   showUsers();
   checkHiddenUsers();
-  console.log("✅ تم التفعيل: تنبيه + حذف الإطارات + إظهار الأزرار.");
+  console.log("✅ تم التفعيل: تنبيه + حذف الإطارات + إظهار الأزرار + توافق مع البحث.");
 })();
