@@ -1,6 +1,7 @@
 javascript:(function(){
   function showUsers() {
     $('.uzr').show();
+    $('.btn').show(); // ✅ إظهار الأزرار أيضًا
     $('[class^="itarr"]').remove(); // حذف جميع الإطارات
 
     if (typeof _ma56zznz2 !== 'undefined' && Array.isArray(_ma56zznz2)) { 
@@ -71,5 +72,5 @@ javascript:(function(){
 
   showUsers();
   checkHiddenUsers();
-  console.log("✅ تم التفعيل: تنبيه + حذف الإطارات.");
+  console.log("✅ تم التفعيل: تنبيه + حذف الإطارات + إظهار الأزرار.");
 })();
