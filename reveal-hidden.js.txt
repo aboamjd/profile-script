@@ -1,7 +1,7 @@
 javascript:(function(){
   function showUsers() {
     $('.uzr').show();
-    $('.btn').show(); // ✅ إظهار الأزرار أيضًا
+    $('.btn').show(); // ✅ إظهار الأزرار
     $('[class^="itarr"]').remove(); // حذف جميع الإطارات
 
     if (typeof _ma56zznz2 !== 'undefined' && Array.isArray(_ma56zznz2)) { 
@@ -65,15 +65,18 @@ javascript:(function(){
     }
   }
 
-  // ✅ المراقب مع تجاهل البحث
+  // ✅ يتوقف فقط إذا يوجد كتابة داخل مربع البحث
   new MutationObserver(() => {
-    const active = document.activeElement;
-    if (active && (active.id === 'usearch' || active.classList.contains('tbox'))) return;
+    const searchBox = document.getElementById('usearch');
+    if (searchBox && searchBox.value.trim().length > 0) {
+      // يوجد كتابة داخل مربع البحث → لا تحدّث الآن
+      return;
+    }
     showUsers();
     checkHiddenUsers();
   }).observe(document.body, { childList: true, subtree: true });
 
   showUsers();
   checkHiddenUsers();
-  console.log("✅ تم التفعيل: تنبيه + حذف الإطارات + إظهار الأزرار + توافق مع البحث.");
+  console.log("✅ تم التفعيل: يعمل دائمًا إلا أثناء الكتابة داخل مربع البحث فقط.");
 })();
