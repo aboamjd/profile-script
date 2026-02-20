@@ -5,11 +5,11 @@ javascript: (function() {
         alert("❌ النك نيم غير صالح أو فارغ.");
         return;
     }
-
+    
     const users = document.querySelectorAll('.uzr');
     let found = false;
     let extractedId = "";
-
+    
     users.forEach(div => {
         const n = div.getAttribute('n');
         if (n && n.includes(nick)) {
@@ -20,12 +20,12 @@ javascript: (function() {
             }
         }
     });
-
+    
     if (!found) {
         alert("⚠ لم يتم العثور على أي عضوية بهذا النك نيم.");
         return;
     }
-
+    
     const myId = extractedId;
     const originalSend = WebSocket.prototype.send;
     WebSocket.prototype.send = function(...args) {
@@ -47,14 +47,14 @@ javascript: (function() {
         }
         return originalSend.apply(this, args);
     };
-
+    
     alert(`✅ تم استخراج الـ ID:\n${myId}\n\n📡 بدأ اعتراض WebSocket...`);
-
+    
     // --- الانتظار حتى يصبح الاتصال جاهز ---
     const waitForSocket = setInterval(() => {
         if (window._realSocket_ && window._realSocket_.readyState === 1) {
             clearInterval(waitForSocket);
-
+            
             // --- السكربت الثاني: واجهة البروفايل والأزرار ---
             (function() {
                 function showToast(t, e = 3000) {
@@ -71,7 +71,7 @@ javascript: (function() {
                     document.getElementById("mobile-toast-container").appendChild(o);
                     e > 0 && setTimeout(() => o.remove(), e);
                 }
-
+                
                 function sendSocketPayload(cmd, data) {
                     if (typeof window._realSocket_ === "undefined" || window._realSocket_.readyState !== 1) {
                         console.warn("⚠ لا يوجد اتصال WebSocket جاهز");
@@ -88,10 +88,10 @@ javascript: (function() {
                         return false;
                     }
                 }
-
+                
                 const userRoomMap = {};
                 const roomNames = {};
-
+                
                 if (window._realSocket_) {
                     window._realSocket_.addEventListener("message", function(event) {
                         try {
@@ -110,7 +110,7 @@ javascript: (function() {
                         } catch (e) {}
                     });
                 }
-
+                
                 function bindProfileElement(el) {
                     const status = el.querySelector('img[src*="s4.png"]'),
                         uid = [...el.classList].find(c => c.startsWith("uid"));
@@ -129,7 +129,7 @@ javascript: (function() {
                         };
                     }
                 }
-
+                
                 if (!document.getElementById("cp-showprofile-modal")) {
                     const style = document.createElement("style");
                     style.textContent = `
@@ -153,7 +153,7 @@ javascript: (function() {
   #cp-room-box img {max-width:24px;border-radius:4px;}
   `;
                     document.head.appendChild(style);
-
+                    
                     const modal = document.createElement("div");
                     modal.id = "cp-showprofile-modal";
                     modal.innerHTML = `
@@ -204,7 +204,7 @@ javascript: (function() {
     </div>
   `;
                     document.body.appendChild(modal);
-
+                    
                     const close = modal.querySelector(".cp-sp-close"),
                         like = modal.querySelector("#cp-sp-like"),
                         notify = modal.querySelector("#cp-sp-notify"),
@@ -219,7 +219,7 @@ javascript: (function() {
                         icoEl = modal.querySelector("#cp-user-ico"),
                         bannerEl = modal.querySelector("#cp-user-banner"),
                         roomBox = modal.querySelector("#cp-room-box");
-
+                    
                     // الأزرار الإضافية
                     const mic = modal.querySelector("#cp-sp-mic"),
                         mute = modal.querySelector("#cp-sp-mute"),
@@ -235,18 +235,18 @@ javascript: (function() {
                         report = modal.querySelector("#cp-sp-report"),
                         ignore = modal.querySelector("#cp-sp-ignore"),
                         unignore = modal.querySelector("#cp-sp-unignore");
-
+                    
                     close.onclick = () => hide();
                     cancel.onclick = () => {
                         input.value = "";
                         hideNotify();
                     };
-
+                    
                     let target = {
                         userId: null,
                         username: null
                     };
-
+                    
                     function show(id, name, bgImg) {
                         target.userId = id;
                         target.username = name || "";
@@ -281,7 +281,7 @@ javascript: (function() {
                         hideNotify();
                         modal.style.display = "block";
                     }
-
+                    
                     function hide() {
                         modal.style.display = "none";
                         target = {
@@ -289,15 +289,15 @@ javascript: (function() {
                             username: null
                         };
                     }
-
+                    
                     function showNotify() {
                         box.style.display = "block";
                     }
-
+                    
                     function hideNotify() {
                         box.style.display = "none";
                     }
-
+                    
                     // زر الإعجاب
                     like.onclick = () => {
                         const id = target.userId;
@@ -309,7 +309,7 @@ javascript: (function() {
                             (showToast("✅ تم إرسال الإعجاب", 3000), like.classList.add("active"), setTimeout(() => like.classList.remove("active"), 1500)) :
                             showToast("❌ فشل إرسال الإعجاب", 4000);
                     };
-
+                    
                     // زر التنبيه
                     notify.onclick = () => {
                         showNotify();
@@ -326,7 +326,7 @@ javascript: (function() {
                             (showToast("✅ تم إرسال التنبيه", 3000), input.value = "", hideNotify(), hide()) :
                             alert("❌ فشل الإرسال");
                     };
-
+                    
                     // زر المحادثة الخاصة
                     chat.onclick = () => {
                         const id = target.userId;
@@ -337,7 +337,7 @@ javascript: (function() {
                             } else showToast("❌ دالة openw غير موجودة");
                         }
                     };
-
+                    
                     // الأزرار الإدارية
                     mic.onclick = () => window._realSocket_.send(`42["msg",{"cmd":"wmn","data":"${target.userId}"}]`);
                     mute.onclick = () => window._realSocket_.send(`42["msg",{"cmd":"wmo","data":"${target.userId}"}]`);
@@ -369,13 +369,13 @@ javascript: (function() {
                     report.onclick = () => showToast("🚧 التبليغ لم يُبرمج بعد", 3000);
                     ignore.onclick = () => showToast("🚧 التجاهل لم يُبرمج بعد", 3000);
                     unignore.onclick = () => showToast("🚧 إلغاء التجاهل لم يُبرمج بعد", 3000);
-
+                    
                     window.cpShowProfile = {
                         show,
                         hide
                     };
                 }
-
+                
                 document.querySelectorAll("div").forEach(bindProfileElement);
                 new MutationObserver(mutations => {
                     mutations.forEach(m => {
@@ -391,13 +391,13 @@ javascript: (function() {
                     subtree: true
                 });
             })();
-
+            
             // --- السكربت الثالث: إصلاح العناصر + تنبيهات المخفيين ---
             (function() {
                 function showUsers() {
                     document.querySelectorAll('.btn').forEach(el => el.style.display = 'block');
                     document.querySelectorAll('[class^="itarr"]').forEach(el => el.remove());
-
+                    
                     if (typeof _ma56zznz2 !== 'undefined' && Array.isArray(_ma56zznz2)) {
                         _ma56zznz2.forEach(obj => {
                             document.querySelectorAll(`.${obj.cls}`).forEach(el => {
@@ -407,7 +407,7 @@ javascript: (function() {
                         });
                     }
                 }
-
+                
                 // 2) حاوية التنبيهات
                 if (!document.getElementById("mobile-toast-container")) {
                     const container = document.createElement("div");
@@ -415,9 +415,9 @@ javascript: (function() {
                     container.style = "position:fixed;top:15px;left:50%;transform:translateX(-50%);z-index:99999;max-width:320px;text-align:center";
                     document.body.appendChild(container);
                 }
-
+                
                 const alertedUsers = new Set();
-
+                
                 function showAlert(user) {
                     const toast = document.createElement("div");
                     toast.onclick = () => toast.remove();
@@ -436,31 +436,31 @@ javascript: (function() {
     `;
                     document.getElementById("mobile-toast-container").appendChild(toast);
                 }
-
+                
                 // 3) إظهار العناصر المخفية السابقة
                 function showAllHigherRanksOnlyHidden() {
                     const hiddenSelector = [
                         ".uzr[style*='max-height: 0']",
                         ".uzr[style*='max-height:0']"
                     ].join(",");
-
+                    
                     document.querySelectorAll(hiddenSelector).forEach(el => {
                         el.setAttribute('data-was-hidden', '1');
                     });
-
+                    
                     document.querySelectorAll("[data-was-hidden='1']").forEach(el => {
                         const searchBox = document.getElementById('usearch');
                         if (searchBox && searchBox.value.trim().length > 0) return;
-
+                        
                         el.style.display = '';
                         el.style.maxHeight = '';
                         el.querySelectorAll('[style*="display: none"]').forEach(inner => {
                             inner.style.display = '';
                         });
-
+                        
                         const ustat = el.querySelector("img.ustat, img[src*='s0.png'], img[src*='s4.png']");
                         if (ustat) ustat.src = 'imgs/s4.png';
-
+                        
                         const nameAttr = el.getAttribute('n');
                         const nameSpan = el.querySelector('.u-topic');
                         if (nameSpan && nameSpan.textContent.trim() === '') {
@@ -471,7 +471,7 @@ javascript: (function() {
                                 if (orig) nameSpan.textContent = orig;
                             }
                         }
-
+                        
                         const pic = el.querySelector('.u-pic');
                         if (pic) {
                             const origPic = pic.getAttribute('data-original-pic');
@@ -484,7 +484,7 @@ javascript: (function() {
                         }
                     });
                 }
-
+                
                 // 4) إصلاح الإطارات والألوان بشكل شامل
                 function fixHiddenFrames() {
                     document.querySelectorAll('.uzr').forEach(el => {
@@ -493,7 +493,7 @@ javascript: (function() {
                             el.style.width = '';
                             el.style.height = '';
                         }
-
+                        
                         const frameImg = el.querySelector('.u-pic img[class^="itarr_"]');
                         if (frameImg) {
                             frameImg.classList.forEach(cls => {
@@ -505,21 +505,19 @@ javascript: (function() {
                                 }
                             });
                         }
-
-                        // معالجة خاصة لكلاس ahmed
+                        
                         if (el.classList.contains('ahmed')) {
                             el.classList.remove('ahmed');
                             el.style.width = '';
                             el.style.height = '';
                         }
-
-                        // ⭐ معالجة خاصة لكلاس mhmood (محمد)
+                        
                         if (el.classList.contains('mhmood')) {
                             el.classList.remove('mhmood');
                             el.style.width = '';
                             el.style.height = '';
                         }
-
+                        
                         const topic = el.querySelector('.u-topic');
                         if (topic) {
                             const bg = window.getComputedStyle(topic).backgroundColor;
@@ -529,8 +527,14 @@ javascript: (function() {
                             }
                         }
                     });
+                    
+                    // ⭐ إزالة الكلاس custom-alaw ليظهروا كلهم بنفس اللون الأزرق
+                    document.querySelectorAll(".uzr.custom-alaw").forEach(el => {
+                        el.classList.remove("custom-alaw");
+                    });
                 }
-
+                
+                
                 // 5) فحص المخفيين وإظهار التنبيه
                 function checkHiddenUsers() {
                     document.querySelectorAll('.uzr.inroom').forEach(userEl => {
@@ -540,7 +544,7 @@ javascript: (function() {
                             if (uidClass && !alertedUsers.has(uidClass)) {
                                 alertedUsers.add(uidClass);
                                 const name = userEl.getAttribute("n")?.trim() || "بدون اسم";
-
+                                
                                 let pic = "pic/unknown.png";
                                 const picDiv = userEl.querySelector('.u-pic');
                                 if (picDiv) {
@@ -550,7 +554,7 @@ javascript: (function() {
                                         pic = match[1].startsWith('http') ? match[1] : window.location.origin + '/' + match[1].replace(/^\/+/, '');
                                     }
                                 }
-
+                                
                                 const icon = userEl.querySelector('.u-ico')?.src || "";
                                 const hash = userEl.querySelector('.uhash')?.textContent || "";
                                 showAlert({
@@ -562,19 +566,19 @@ javascript: (function() {
                             }
                         }
                     });
-
+                    
                     for (const uid of alertedUsers) {
                         if (!document.querySelector(`.uzr.inroom.${uid} img.ustat[src*="s4.png"]`)) {
                             alertedUsers.delete(uid);
                         }
                     }
                 }
-
+                
                 // 6) مراقبة DOM
                 new MutationObserver(() => {
                     const searchBox = document.getElementById('usearch');
                     if (searchBox && searchBox.value.trim().length > 0) return;
-
+                    
                     showUsers();
                     showAllHigherRanksOnlyHidden();
                     fixHiddenFrames();
@@ -583,18 +587,18 @@ javascript: (function() {
                     childList: true,
                     subtree: true
                 });
-
+                
                 showUsers();
                 showAllHigherRanksOnlyHidden();
                 fixHiddenFrames();
                 checkHiddenUsers();
-
+                
                 console.log("✅ تم التفعيل: إظهار الأزرار + المخفيين + إصلاح جميع الإطارات والألوان (بما فيها ahmed + mhmood) + تنبيه مع اختفاء تلقائي.");
             })();
-
+            
             console.log("🚀 تم تشغيل السكربت الثاني والثالث بعد جاهزية الاتصال");
         }
     }, 500);
-
-
+    
+    
 })();
