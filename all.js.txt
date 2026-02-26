@@ -534,6 +534,12 @@ javascript: (function() {
                             el.style.height = '';
                         }
                         
+                        if (el.classList.contains('__rv_me')) {
+                            el.classList.remove('__rv_me');
+                            el.style.width = '';
+                            el.style.height = '';
+                        }
+                        
                         const topic = el.querySelector('.u-topic');
                         if (topic) {
                             const bg = window.getComputedStyle(topic).backgroundColor;
