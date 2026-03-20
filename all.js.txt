@@ -27,33 +27,132 @@ javascript: (function() {
     }
     
     const myId = extractedId;
+    
+    // ═══════════════════════════════════════════════════
+    // 🔑 المتغيرات المشتركة - تُعرّف هنا قبل كل شيء
+    // ═══════════════════════════════════════════════════
+    const userRoomMap = {};
+    const roomNames = {};
+    let _socketListenerAttached = null; // لتتبع أي سوكت مربوط عليه المستمع
+    
+    // ═══════════════════════════════════════════════════
+    // 🔌 دالة ربط مستمع الرسائل على السوكت
+    // ═══════════════════════════════════════════════════
+    function attachSocketListener(socket) {
+        // لا تربط نفس السوكت مرتين
+        if (_socketListenerAttached === socket) return;
+        _socketListenerAttached = socket;
+        
+        console.log("📡 تم ربط مستمع الرسائل على السوكت الجديد");
+        
+        socket.addEventListener("message", function(event) {
+            try {
+                const data = event.data;
+                if (typeof data === "string" && data.startsWith("42")) {
+                    const payload = JSON.parse(data.slice(2));
+                    const [eventName, content] = payload;
+                    
+                    // تتبع مواقع المستخدمين في الغرف
+                    if (eventName === "msg" && content?.cmd === "wr" && Array.isArray(content.data)) {
+                        const [userId, roomId] = content.data;
+                        userRoomMap[userId] = roomId;
+                        const roomEl = document.querySelector(`.room.r${roomId}`);
+                        const roomName = roomEl?.querySelector(".u-topic")?.textContent.trim();
+                        if (roomName) roomNames[roomId] = roomName;
+                        
+                    }
+                    
+                    // تتبع دخول المستخدمين للغرف
+                    if (eventName === "msg" && content?.cmd === "wj") {
+                        const d = content.data;
+                        if (d && d.id && d.rid) {
+                            userRoomMap[d.id] = d.rid;
+                            
+                        }
+                    }
+                    
+                    // تتبع خروج المستخدمين من الغرف
+                    if (eventName === "msg" && content?.cmd === "wl") {
+                        const d = content.data;
+                        if (d && d.id) {
+                            delete userRoomMap[d.id];
+                            
+                        }
+                    }
+                }
+            } catch (e) {}
+        });
+    }
+    
+    // ═══════════════════════════════════════════════════
+    // 🕵️ اعتراض WebSocket.send للكشف عن السوكت الحقيقي
+    // + اعتراض إنشاء أي سوكت جديد
+    // ═══════════════════════════════════════════════════
     const originalSend = WebSocket.prototype.send;
     WebSocket.prototype.send = function(...args) {
         const raw = args[0];
-        if (typeof raw === "string" && raw.startsWith("42") && raw.includes('"msg"') && raw.includes(myId)) {
-            try {
-                const parsed = JSON.parse(raw.slice(2));
-                const [type, payload] = parsed;
-                if (type === "msg" && typeof payload === "object") {
-                    const data = payload.data || {};
-                    if (JSON.stringify(data).includes(myId)) {
-                        window._realSocket_ = this;
-                        console.log("✅ تم حفظ الاتصال الحقيقي في window._realSocket_");
-                    }
+        
+        // كل ما يرسل أي رسالة 42 نحفظ السوكت ونربط المستمع
+        if (typeof raw === "string" && raw.startsWith("42")) {
+            if (this.readyState === 1) {
+                // إذا السوكت تغير (جديد بعد إعادة الاتصال)
+                if (window._realSocket_ !== this) {
+                    console.log("🔄 تم اكتشاف سوكت جديد! يتم التحديث...");
+                    window._realSocket_ = this;
+                    attachSocketListener(this);
                 }
-            } catch (err) {
-                console.warn("⚠ فشل في تحليل الرسالة:", raw);
             }
         }
+        
         return originalSend.apply(this, args);
     };
     
-    alert(`✅ تم استخراج الـ ID:\n${myId}\n\n📡 بدأ اعتراض WebSocket...`);
+    // ═══════════════════════════════════════════════════
+    // 🔄 اعتراض WebSocket constructor لالتقاط أي اتصال جديد فوراً
+    // ═══════════════════════════════════════════════════
+    const OriginalWebSocket = window.WebSocket;
+    window.WebSocket = function(...args) {
+        const ws = new OriginalWebSocket(...args);
+        
+        ws.addEventListener('open', function() {
+            console.log("🌐 اتصال WebSocket جديد مفتوح:", args[0]);
+            // سيتم التقاطه عبر send أيضاً، لكن نضيف مستمع مبكر
+            setTimeout(() => {
+                if (ws.readyState === 1) {
+                    window._realSocket_ = ws;
+                    attachSocketListener(ws);
+                    console.log("✅ تم تحديث _realSocket_ من constructor");
+                }
+            }, 1000);
+        });
+        
+        return ws;
+    };
+    window.WebSocket.prototype = OriginalWebSocket.prototype;
+    window.WebSocket.CONNECTING = OriginalWebSocket.CONNECTING;
+    window.WebSocket.OPEN = OriginalWebSocket.OPEN;
+    window.WebSocket.CLOSING = OriginalWebSocket.CLOSING;
+    window.WebSocket.CLOSED = OriginalWebSocket.CLOSED;
+    
+    alert(`✅ تم استخراج الـ ID:\n${myId}\n\n📡 بدأ اعتراض WebSocket مع دعم إعادة الاتصال...`);
+    
+    // ═══════════════════════════════════════════════════
+    // ⏳ مراقبة مستمرة لحالة السوكت (فحص دوري)
+    // ═══════════════════════════════════════════════════
+    setInterval(() => {
+        // إذا السوكت الحالي مغلق، نبحث عن واحد جديد
+        if (!window._realSocket_ || window._realSocket_.readyState !== 1) {
+            console.log("⚠ السوكت الحالي غير متصل، بانتظار اتصال جديد...");
+        }
+    }, 5000);
     
     // --- الانتظار حتى يصبح الاتصال جاهز ---
     const waitForSocket = setInterval(() => {
         if (window._realSocket_ && window._realSocket_.readyState === 1) {
             clearInterval(waitForSocket);
+            
+            // ربط المستمع على أول سوكت
+            attachSocketListener(window._realSocket_);
             
             // --- السكربت الثاني: واجهة البروفايل والأزرار ---
             (function() {
@@ -73,12 +172,15 @@ javascript: (function() {
                 }
                 
                 function sendSocketPayload(cmd, data) {
-                    if (typeof window._realSocket_ === "undefined" || window._realSocket_.readyState !== 1) {
+                    // 🔑 دائماً نستخدم أحدث سوكت
+                    const sock = window._realSocket_;
+                    if (!sock || sock.readyState !== 1) {
                         console.warn("⚠ لا يوجد اتصال WebSocket جاهز");
+                        showToast("⚠ الاتصال غير جاهز، انتظر لحظة...", 3000);
                         return false;
                     }
                     try {
-                        window._realSocket_.send("42" + JSON.stringify(["msg", {
+                        sock.send("42" + JSON.stringify(["msg", {
                             cmd,
                             data
                         }]));
@@ -89,27 +191,7 @@ javascript: (function() {
                     }
                 }
                 
-                const userRoomMap = {};
-                const roomNames = {};
-                
-                if (window._realSocket_) {
-                    window._realSocket_.addEventListener("message", function(event) {
-                        try {
-                            const data = event.data;
-                            if (typeof data === "string" && data.startsWith("42")) {
-                                const payload = JSON.parse(data.slice(2));
-                                const [eventName, content] = payload;
-                                if (eventName === "msg" && content?.cmd === "wr" && Array.isArray(content.data)) {
-                                    const [userId, roomId] = content.data;
-                                    userRoomMap[userId] = roomId;
-                                    const roomEl = document.querySelector(`.room.r${roomId}`);
-                                    const roomName = roomEl?.querySelector(".u-topic")?.textContent.trim();
-                                    if (roomName) roomNames[roomId] = roomName;
-                                }
-                            }
-                        } catch (e) {}
-                    });
-                }
+                // 🔑 نستخدم userRoomMap و roomNames المعرّفة أعلاه (مشتركة)
                 
                 function bindProfileElement(el) {
                     const status = el.querySelector('img[src*="s4.png"]'),
@@ -185,18 +267,18 @@ javascript: (function() {
       <div class="cp-sp-btn" id="cp-sp-ban">باند</div>
       <div class="cp-sp-btn" id="cp-sp-report">تبليغ</div>
       <div class="cp-sp-btn" id="cp-sp-ignore">تجاهل</div>
-            <div class="cp-sp-btn" id="cp-sp-unignore">إلغاء التجاهل</div>
+      <div class="cp-sp-btn" id="cp-sp-unignore">إلغاء التجاهل</div>
     </div>
     <div id="cp-sp-notify-box">
-      <textarea id="cp-sp-notify-txt" placeholder="اكتب التنبيه هنا..." 
+      <textarea id="cp-sp-notify-txt" placeholder="اكتب التنبيه هنا..."
         style="width:100%;height:70px;background:#0b0b0d;color:white;border-radius:6px;
         padding:8px;border:1px solid rgba(255,255,255,.1);"></textarea>
       <div style="display:flex;gap:8px;margin-top:8px;">
-        <button class="cp-sp-small" id="cp-sp-send-not" 
+        <button class="cp-sp-small" id="cp-sp-send-not"
           style="flex:1;padding:8px;border-radius:6px;background:#1a73e8;border:none;color:#fff;">
           إرسال التنبيه
         </button>
-        <button class="cp-sp-small secondary" id="cp-sp-cancel-not" 
+        <button class="cp-sp-small secondary" id="cp-sp-cancel-not"
           style="flex:1;padding:8px;border-radius:6px;background:#777;border:none;color:#fff;">
           إلغاء
         </button>
@@ -220,7 +302,6 @@ javascript: (function() {
                         bannerEl = modal.querySelector("#cp-user-banner"),
                         roomBox = modal.querySelector("#cp-room-box");
                     
-                    // الأزرار الإضافية
                     const mic = modal.querySelector("#cp-sp-mic"),
                         mute = modal.querySelector("#cp-sp-mute"),
                         allow = modal.querySelector("#cp-sp-allow"),
@@ -253,19 +334,32 @@ javascript: (function() {
                         const card = document.querySelector(".uid" + id);
                         const topic = card?.querySelector(".u-topic")?.textContent.trim() || name || id;
                         userNameSpan.textContent = topic;
-                        const roomId = userRoomMap[id];
-                        const roomName = roomNames[roomId] || "ليس في غرفة";
-                        if (roomId) {
-                            const roomEl = document.querySelector(".room.r" + roomId);
-                            const roomImg = roomEl?.querySelector(".u-pic")?.style.backgroundImage.replace(/^url\(["']?|["']?\)$/g, "").trim() || "";
-                            roomBox.innerHTML = `
-        <div onclick="rjoin('${roomId}')">
-          ${roomImg ? `<img src="${roomImg}">` : ""}
-          ${roomName}
-        </div>`;
-                        } else {
-                            roomBox.innerHTML = `<div style="color:#aaa;font-size:13px;">ليس في غرفة</div>`;
+                        
+                        // 🔑 طلب موقع المستخدم من السيرفر عند فتح البروفايل
+                        if (window._realSocket_ && window._realSocket_.readyState === 1) {
+                            window._realSocket_.send('42' + JSON.stringify(["msg", {
+                                "cmd": "wr",
+                                "data": id
+                            }]));
                         }
+                        
+                        // تأخير بسيط لانتظار الرد
+                        setTimeout(() => {
+                            const roomId = userRoomMap[id];
+                            const roomName = roomNames[roomId] || "ليس في غرفة";
+                            if (roomId) {
+                                const roomEl = document.querySelector(".room.r" + roomId);
+                                const roomImg = roomEl?.querySelector(".u-pic")?.style.backgroundImage.replace(/^url\(["']?|["']?\)$/g, "").trim() || "";
+                                roomBox.innerHTML = `
+            <div onclick="rjoin('${roomId}')">
+              ${roomImg ? `<img src="${roomImg}">` : ""}
+              ${roomName}
+            </div>`;
+                            } else {
+                                roomBox.innerHTML = `<div style="color:#aaa;font-size:13px;">ليس في غرفة</div>`;
+                            }
+                        }, 500);
+                        
                         const ico = card?.querySelector(".u-ico")?.src || "";
                         if (ico) bannerEl.src = ico;
                         else bannerEl.removeAttribute("src");
@@ -298,7 +392,6 @@ javascript: (function() {
                         box.style.display = "none";
                     }
                     
-                    // زر الإعجاب
                     like.onclick = () => {
                         const id = target.userId;
                         if (!id) return;
@@ -310,7 +403,6 @@ javascript: (function() {
                             showToast("❌ فشل إرسال الإعجاب", 4000);
                     };
                     
-                    // زر التنبيه
                     notify.onclick = () => {
                         showNotify();
                     };
@@ -327,7 +419,6 @@ javascript: (function() {
                             alert("❌ فشل الإرسال");
                     };
                     
-                    // زر المحادثة الخاصة
                     chat.onclick = () => {
                         const id = target.userId;
                         if (id) {
@@ -338,17 +429,37 @@ javascript: (function() {
                         }
                     };
                     
-                    // الأزرار الإدارية
-                    mic.onclick = () => window._realSocket_.send(`42["msg",{"cmd":"wmn","data":"${target.userId}"}]`);
-                    mute.onclick = () => window._realSocket_.send(`42["msg",{"cmd":"wmo","data":"${target.userId}"}]`);
-                    allow.onclick = () => window._realSocket_.send(`42["msg",{"cmd":"wmc","data":"${target.userId}"}]`);
+                    // 🔑 الأزرار الإدارية - تستخدم دائماً أحدث سوكت
+                    mic.onclick = () => {
+                        if (window._realSocket_?.readyState === 1)
+                            window._realSocket_.send(`42["msg",{"cmd":"wmn","data":"${target.userId}"}]`);
+                        else showToast("⚠ الاتصال غير جاهز");
+                    };
+                    mute.onclick = () => {
+                        if (window._realSocket_?.readyState === 1)
+                            window._realSocket_.send(`42["msg",{"cmd":"wmo","data":"${target.userId}"}]`);
+                        else showToast("⚠ الاتصال غير جاهز");
+                    };
+                    allow.onclick = () => {
+                        if (window._realSocket_?.readyState === 1)
+                            window._realSocket_.send(`42["msg",{"cmd":"wmc","data":"${target.userId}"}]`);
+                        else showToast("⚠ الاتصال غير جاهز");
+                    };
                     gift.onclick = () => sendSocketPayload("ccvimn", {
                         cmd: "gift",
                         id: target.userId,
                         gift: "z1JmoY8zNO.gif"
                     });
-                    jokes.onclick = () => window._realSocket_.send(`42["msg",{"cmd":"wh","data":"${target.userId}"}]`);
-                    banner.onclick = () => window._realSocket_.send(`42["msg",{"cmd":"\`np","data":{"u2":"${target.userId}","bnr":"z228g8gLcH.png"}}]`);
+                    jokes.onclick = () => {
+                        if (window._realSocket_?.readyState === 1)
+                            window._realSocket_.send(`42["msg",{"cmd":"wh","data":"${target.userId}"}]`);
+                        else showToast("⚠ الاتصال غير جاهز");
+                    };
+                    banner.onclick = () => {
+                        if (window._realSocket_?.readyState === 1)
+                            window._realSocket_.send(`42["msg",{"cmd":"np","data":{"u2":"${target.userId}","bnr":"z228g8gLcH.png"}}]`);
+                        else showToast("⚠ الاتصال غير جاهز");
+                    };
                     delpic.onclick = () => sendSocketPayload("ccvimn", {
                         cmd: "delpic",
                         id: target.userId
@@ -408,7 +519,6 @@ javascript: (function() {
                     }
                 }
                 
-                // 2) حاوية التنبيهات
                 if (!document.getElementById("mobile-toast-container")) {
                     const container = document.createElement("div");
                     container.id = "mobile-toast-container";
@@ -437,7 +547,6 @@ javascript: (function() {
                     document.getElementById("mobile-toast-container").appendChild(toast);
                 }
                 
-                // 3) إظهار العناصر المخفية السابقة
                 function showAllHigherRanksOnlyHidden() {
                     const hiddenSelector = [
                         ".uzr[style*='max-height: 0']",
@@ -452,7 +561,6 @@ javascript: (function() {
                         const searchBox = document.getElementById('usearch');
                         if (searchBox && searchBox.value.trim().length > 0) return;
                         
-                        // منع إضافة الكلاس __rv_me نهائياً
                         if (!el._patched) {
                             const originalAdd = el.classList.add;
                             el.classList.add = function(...args) {
@@ -462,7 +570,6 @@ javascript: (function() {
                             el._patched = true;
                         }
                         
-                        // إزالة الكلاس إذا كان موجوداً بالفعل
                         if (el.classList.contains('__rv_me')) {
                             el.classList.remove('__rv_me');
                         }
@@ -500,8 +607,6 @@ javascript: (function() {
                     });
                 }
                 
-                
-                // 4) إصلاح الإطارات والألوان بشكل شامل
                 function fixHiddenFrames() {
                     document.querySelectorAll('.uzr').forEach(el => {
                         const style = window.getComputedStyle(el);
@@ -550,14 +655,11 @@ javascript: (function() {
                         }
                     });
                     
-                    // ⭐ إزالة الكلاس custom-alaw ليظهروا كلهم بنفس اللون الأزرق
                     document.querySelectorAll(".uzr.custom-alaw").forEach(el => {
                         el.classList.remove("custom-alaw");
                     });
                 }
                 
-                
-                // 5) فحص المخفيين وإظهار التنبيه
                 function checkHiddenUsers() {
                     document.querySelectorAll('.uzr.inroom').forEach(userEl => {
                         const statusImg = userEl.querySelector('img.ustat');
@@ -596,7 +698,6 @@ javascript: (function() {
                     }
                 }
                 
-                // 6) مراقبة DOM
                 new MutationObserver(() => {
                     const searchBox = document.getElementById('usearch');
                     if (searchBox && searchBox.value.trim().length > 0) return;
@@ -615,12 +716,11 @@ javascript: (function() {
                 fixHiddenFrames();
                 checkHiddenUsers();
                 
-                console.log("✅ تم التفعيل: إظهار الأزرار + المخفيين + إصلاح جميع الإطارات والألوان (بما فيها ahmed + mhmood) + تنبيه مع اختفاء تلقائي.");
+                console.log("✅ تم التفعيل: إظهار الأزرار + المخفيين + إصلاح جميع الإطارات والألوان + تنبيه مع دعم إعادة الاتصال.");
             })();
             
             console.log("🚀 تم تشغيل السكربت الثاني والثالث بعد جاهزية الاتصال");
         }
     }, 500);
-    
     
 })();
